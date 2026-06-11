@@ -52,7 +52,7 @@ async function sendAudio() {
   const base64 = btoa(binary);
 
   try {
-    const response = await fetch('http://localhost:3000/identify', {
+    const response = await fetch('/identify', {
       method: 'POST',
       body: base64
     });
@@ -118,7 +118,7 @@ function handleResult(data) {
 async function fetchOrigin(title, artist) {
   songOrigin.textContent = '🔍 Looking for origin...';
   try {
-    const response = await fetch('http://localhost:3000/origin', {
+    const response = await fetch('/origin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, artist })
