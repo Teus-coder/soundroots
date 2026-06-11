@@ -1,0 +1,80 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0f0f1a;
+  color: #fff;
+  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.container {
+  text-align: center;
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+}
+
+h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+.subtitle { color: #888; margin-bottom: 2rem; }
+
+#recordBtn {
+  background: #6c63ff;
+  color: white;
+  border: none;
+  padding: 1.2rem 2.5rem;
+  font-size: 1.2rem;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+#recordBtn:hover { background: #574fd6; }
+#recordBtn.recording { background: #ff4757; transform: scale(1.05); }
+
+#status { margin-top: 1rem; color: #aaa; font-size: 0.95rem; }
+
+#result {
+  margin-top: 2rem;
+  background: #1a1a2e;
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+#result.hidden { display: none; }
+#songTitle { font-size: 1.5rem; margin-bottom: 0.3rem; }
+#songArtist { color: #aaa; margin-bottom: 0.5rem; }
+#songOrigin { color: #6c63ff; margin: 0.8rem 0; font-style: italic; }
+
+#streamLinks { display: flex; gap: 1rem; justify-content: center; margin-top: 1rem; }
+#streamLinks a {
+  background: #2a2a3e;
+  color: #fff;
+  padding: 0.5rem 1.2rem;
+  border-radius: 20px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+#streamLinks a:hover { background: #6c63ff; }
+
+.others-title { color: #888; font-size: 0.85rem; margin-top: 1.2rem; margin-bottom: 0.5rem; }
+
+.candidate {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  background: #2a2a3e;
+  margin-bottom: 0.4rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.candidate:hover { background: #3a3a5e; }
+.candidate-title { flex: 1; font-size: 0.95rem; }
+.candidate-artist { color: #888; font-size: 0.85rem; }
+.candidate-score { color: #6c63ff; font-size: 0.85rem; font-weight: bold; }

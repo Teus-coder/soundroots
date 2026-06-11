@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SoundRoots</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="container">
+    <h1>🎵 SoundRoots</h1>
+    <p class="subtitle">Hum a melody — find where it comes from</p>
+
+    <button id="recordBtn">🎤 Hold to Hum</button>
+    <p id="status">Ready</p>
+
+    <div id="result" class="hidden">
+      <h2 id="songTitle"></h2>
+      <p id="songArtist"></p>
+      <p id="songOrigin"></p>
+      <div id="streamLinks"></div>
+    </div>
+  </div>
+<div id="otherCandidates"></div>
+  <script src="app.js"></script>
+</body>
+</html>

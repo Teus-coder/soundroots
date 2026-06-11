@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "acrcloud": "^1.4.0",
+    "dotenv": "^17.4.2",
+    "formdata-node": "^6.0.3",
+    "node-fetch": "^3.3.2"
+  }
+}
