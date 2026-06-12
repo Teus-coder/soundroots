@@ -6,6 +6,7 @@ const songArtist = document.getElementById('songArtist');
 const songOrigin = document.getElementById('songOrigin');
 const streamLinks = document.getElementById('streamLinks');
 const mediaImage = document.getElementById('mediaImage');
+const appearancesDiv = document.getElementById('appearances');
 
 let mediaRecorder;
 let audioChunks = [];
@@ -28,6 +29,10 @@ async function startRecording() {
   status.textContent = '🎤 Humming... press again when done';
   recordBtn.textContent = '⏹ Stop';
   recordBtn.classList.add('recording');
+  document.querySelector('.how-it-works').classList.remove('hidden');
+  result.classList.add('hidden');
+  document.getElementById('otherCandidates').innerHTML = '';
+  document.getElementById('appearances').innerHTML = '';
 
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   mediaRecorder = new MediaRecorder(stream);
@@ -78,6 +83,7 @@ function handleResult(data) {
   if (data.status?.code !== 0) {
     status.textContent = '🤔 No match found. Try humming a bit longer!';
     result.classList.add('hidden');
+    document.querySelector('.how-it-works').classList.add('hidden');
     return;
   }
 
@@ -134,9 +140,13 @@ function handleResult(data) {
     </div>`;
     });
   }
-
+  document.querySelector('.how-it-works').classList.add('hidden');
   result.classList.remove('hidden');
   status.textContent = '✅ Found!';
+  gtag('event', 'song_identified', {
+  song_title: best.title,
+  artist: best.artists?.[0]?.name || 'Unknown'
+});
 }
 
 async function fetchOrigin(title, artist, album = '') {
@@ -149,10 +159,36 @@ async function fetchOrigin(title, artist, album = '') {
       body: JSON.stringify({ title, artist, album })
     });
     const data = await response.json();
+    if (data.original_title && data.original_title !== title) {
+      songTitle.textContent = data.original_title;
+    }
+    if (data.original_year) {
+      const currentText = songArtist.textContent;
+      // Reemplazar el año que puso ACRCloud por el original
+      songArtist.textContent = currentText.replace(/· \d{4}/, `· ${data.original_year}`);
+    }
     songOrigin.textContent = data.origin;
+
     if (data.imageUrl) {
       mediaImage.src = data.imageUrl;
       mediaImage.classList.remove('hidden');
+    }
+
+    appearancesDiv.innerHTML = '';
+    if (data.appearances?.length > 0) {
+      appearancesDiv.innerHTML = '<p class="appearances-title">Also appears in:</p>';
+      data.appearances.forEach(a => {
+        const icon = a.type === 'movie' ? '🎬' : a.type === 'tv' ? '📺' : a.type === 'game' ? '🎮' : a.type === 'advertisement' ? '📢' : '🎵';
+        appearancesDiv.innerHTML += `
+      <div class="appearance-item">
+        <span class="appearance-icon">${icon}</span>
+        <span class="appearance-info">
+          <span class="appearance-title">${a.title}</span>
+          ${a.year ? `<span class="appearance-year">${a.year}</span>` : ''}
+          ${a.detail ? `<span class="appearance-detail">${a.detail}</span>` : ''}
+        </span>
+      </div>`;
+      });
     }
   } catch (err) {
     songOrigin.textContent = '🎬 Origin could not be determined';
@@ -162,8 +198,8 @@ async function fetchOrigin(title, artist, album = '') {
 function selectCandidate(c) {
   songTitle.textContent = c.title;
   const year = c.release_date ? c.release_date.substring(0, 4) : null;
-  songArtist.textContent = `by ${c.artists?.[0]?.name || 'Unknown'}` + 
-    (c.album?.name ? ` · ${c.album.name}` : '') + 
+  songArtist.textContent = `by ${c.artists?.[0]?.name || 'Unknown'}` +
+    (c.album?.name ? ` · ${c.album.name}` : '') +
     (year ? ` · ${year}` : '');
   fetchOrigin(c.title, c.artists?.[0]?.name || '', c.album?.name || '');
   const spotify = c.external_metadata?.spotify?.track?.id;

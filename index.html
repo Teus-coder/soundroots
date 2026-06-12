@@ -1,19 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-6029GS698H"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', 'G-6029GS698H');
+</script>
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SoundRoots</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
-  <div class="container">
-    <h1>🎵 SoundRoots</h1>
-    <p class="subtitle">Hum a melody — find where it comes from</p>
+  <body>
+    <div class="header">
+      <h1>🎵 SoundRoots</h1>
+      <p class="subtitle">Hum a melody — find where it comes from</p>
+      <button id="recordBtn">🎤 Hum a melody</button>
+      <p id="status">Ready</p>
+    </div>
 
-    <button id="recordBtn">🎤 Press to Hum</button>
-    <p id="status">Ready</p>
+    <div class="how-it-works">
+      <div class="step">
+        <span class="step-icon">🎤</span>
+        <h3>Hum it</h3>
+        <p>Press the button and hum the melody you have stuck in your head</p>
+      </div>
+      <div class="step-divider">→</div>
+      <div class="step">
+        <span class="step-icon">🔍</span>
+        <h3>We identify it</h3>
+        <p>Our engine matches your hum against millions of songs</p>
+      </div>
+      <div class="step-divider">→</div>
+      <div class="step">
+        <span class="step-icon">🎬</span>
+        <h3>Find the origin</h3>
+        <p>Discover if it's from a film, series, game or just a great song</p>
+      </div>
+    </div>
 
     <div id="result" class="hidden">
       <img id="mediaImage" class="hidden" alt="Media cover" />
@@ -21,9 +52,14 @@
       <p id="songArtist"></p>
       <p id="songOrigin"></p>
       <div id="streamLinks"></div>
+      <div id="appearances"></div>
+      <div id="otherCandidates"></div>
     </div>
-  </div>
-<div id="otherCandidates"></div>
-  <script src="app.js"></script>
+
+
+
+    <script src="app.js"></script>
+  </body>
 </body>
+
 </html>

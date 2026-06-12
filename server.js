@@ -101,17 +101,24 @@ const server = http.createServer(async (req, res) => {
             max_tokens: 300,
             messages: [{
               role: 'user',
-              content: `The song "${title}" by "${artist}"${album ? ` from the album "${album}"` : ''} was identified by humming recognition.
-    
+              content: `The song "${title}" by "${artist}"${album ? ` from the album "${album}"` : ''} was identified by humming recognition. The title may be in a non-original language due to regional indexing.
+
+First, determine the original language of this song. If the provided title is a translation or transliteration and the original song is in English (or another language different from the provided title), use the original title in your response instead.
+
 Respond ONLY with a valid JSON object, no extra text, no markdown, no backticks. Example format:
 {
-  "origin": "One sentence describing if this song is from a movie, TV show, video game, advertisement, or is an original release.",
+  "original_title": "All Star",
+  "original_year": 1999,
+  "origin": "One sentence summary of the most well-known origin of this song.",
   "media_type": "movie" | "tv" | "game" | "none",
-  "media_title": "Exact title of the movie, show or game, or null if none",
-  "media_year": 1994 or null
+  "media_title": "Most well-known movie, show or game title, or null if none",
+  "media_year": 1994 or null,
+  "appearances": [
+    { "type": "movie" | "tv" | "game" | "advertisement" | "original", "title": "Title", "year": 1994, "detail": "e.g. opening theme, end credits, background music" }
+  ]
 }
 
-Be concise in origin. If the song appears in multiple media, pick the most well-known one.`
+Always use the original title in original_title field, never a translation. Also determine the original release year of the song, not any remaster or re-release year. Put it in original_year.`
             }]
           })
         });
@@ -157,7 +164,13 @@ Be concise in origin. If the song appears in multiple media, pick the most well-
         }
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ origin: parsed.origin, imageUrl }));
+        res.end(JSON.stringify({
+          origin: parsed.origin,
+          original_title: parsed.original_title || title,
+          original_year: parsed.original_year || null,
+          imageUrl,
+          appearances: parsed.appearances || []
+        }));
       } catch (err) {
         console.error('Origin error:', err.message);
         res.writeHead(500);
