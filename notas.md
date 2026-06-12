@@ -58,6 +58,7 @@ En `.env` local y en Render > soundroots > Environment:
 - ⬜ Dominio personalizado (soundroots.com)
 - ⬜ Resolver sleep de Render en free tier (upgrade o keep-alive)
 - ⬜ Renovar/pagar ACRCloud cuando expire el trial (10 jul 2026)
+- ⬜ Añadir cookies al sitio
 
 ## Archivos del proyecto
 - `server.js` — Servidor Node.js, rutas /identify y /origin, firma HMAC para ACRCloud
