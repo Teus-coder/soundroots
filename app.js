@@ -5,21 +5,28 @@ const songTitle = document.getElementById('songTitle');
 const songArtist = document.getElementById('songArtist');
 const songOrigin = document.getElementById('songOrigin');
 const streamLinks = document.getElementById('streamLinks');
+const mediaImage = document.getElementById('mediaImage');
 
 let mediaRecorder;
 let audioChunks = [];
 let recording = false;
 
-recordBtn.addEventListener('mousedown', startRecording);
-recordBtn.addEventListener('mouseup', stopRecording);
-recordBtn.addEventListener('touchstart', startRecording);
-recordBtn.addEventListener('touchend', stopRecording);
+recordBtn.addEventListener('click', toggleRecording);
+recordBtn.addEventListener('touchend', (e) => { e.preventDefault(); toggleRecording(); });
+
+async function toggleRecording() {
+  if (!recording) {
+    await startRecording();
+  } else {
+    stopRecording();
+  }
+}
 
 async function startRecording() {
-  if (recording) return;
   recording = true;
   audioChunks = [];
-  status.textContent = '🎤 Humming... release when done';
+  status.textContent = '🎤 Humming... press again when done';
+  recordBtn.textContent = '⏹ Stop';
   recordBtn.classList.add('recording');
 
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -30,19 +37,20 @@ async function startRecording() {
 }
 
 function stopRecording() {
-  if (!recording) return;
   recording = false;
   mediaRecorder.stop();
+  mediaRecorder.stream.getTracks().forEach(t => t.stop());
   status.textContent = '⏳ Identifying...';
+  recordBtn.textContent = '🎤 Hum a melody';
   recordBtn.classList.remove('recording');
 }
 
 async function sendAudio() {
   const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-  
+
   const arrayBuffer = await audioBlob.arrayBuffer();
   const uint8Array = new Uint8Array(arrayBuffer);
-  
+
   let binary = '';
   const chunkSize = 8192;
   for (let i = 0; i < uint8Array.length; i += chunkSize) {
@@ -74,19 +82,34 @@ function handleResult(data) {
   }
 
   const candidates = data.metadata?.music || data.metadata?.humming || [];
-  
+
   if (candidates.length === 0) {
     status.textContent = '🤔 No match found. Try humming a bit longer!';
     result.classList.add('hidden');
     return;
   }
 
-  const sorted = candidates.sort((a, b) => b.score - a.score).slice(0, 3);
-  const best = sorted[0];
+  const sorted = candidates.sort((a, b) => b.score - a.score).slice(0, 5);
+
+  // Priorizar versión de estudio sobre lives, remixes y versiones en otros idiomas
+  const preferredKeywords = ['original', 'studio', 'remaster'];
+  const avoidKeywords = ['live', 'remix', 'karaoke', 'cover', 'instrumental', 'version', 'mix'];
+
+  const original = sorted.find(c => {
+    const titleLower = c.title.toLowerCase();
+    const albumLower = (c.album?.name || '').toLowerCase();
+    return !avoidKeywords.some(k => titleLower.includes(k) || albumLower.includes(k));
+  });
+
+  const best = original || sorted[0];
+
+  // Marcar cuál es el original en los candidatos alternativos
+  const others = sorted.filter(c => c !== best);
 
   songTitle.textContent = best.title;
-  songArtist.textContent = `by ${best.artists?.[0]?.name || 'Unknown'}` + (best.album?.name ? ` · ${best.album.name}` : '');
-  fetchOrigin(best.title, best.artists?.[0]?.name || '');
+  const year = best.release_date ? best.release_date.substring(0, 4) : null;
+  songArtist.textContent = `by ${best.artists?.[0]?.name || 'Unknown'}` + (best.album?.name ? ` · ${best.album.name}` : '') + (year ? ` · ${year}` : '');
+  fetchOrigin(best.title, best.artists?.[0]?.name || '', best.album?.name || '');
 
   const spotify = best.external_metadata?.spotify?.track?.id;
   const youtube = best.external_metadata?.youtube?.vid;
@@ -99,15 +122,16 @@ function handleResult(data) {
   othersDiv.innerHTML = '';
   if (sorted.length > 1) {
     othersDiv.innerHTML = '<p class="others-title">Not what you were looking for?</p>';
-    sorted.slice(1).forEach(c => {
+    others.forEach(c => {
       const score = Math.round(c.score * 100);
       const artist = c.artists?.[0]?.name || 'Unknown';
+      const isOriginalVersion = c === sorted[0] && c !== best;
       othersDiv.innerHTML += `
-        <div class="candidate" onclick="selectCandidate(${JSON.stringify(c).split('"').join("'")})">
-          <span class="candidate-title">${c.title}</span>
-          <span class="candidate-artist">by ${artist}</span>
-          <span class="candidate-score">${score}%</span>
-        </div>`;
+    <div class="candidate" onclick="selectCandidate(${JSON.stringify(c).split('"').join("'")})">
+      <span class="candidate-title">${c.title}${isOriginalVersion ? ' <span class="original-badge">Original</span>' : ''}</span>
+      <span class="candidate-artist">by ${artist}</span>
+      <span class="candidate-score">${score}%</span>
+    </div>`;
     });
   }
 
@@ -115,16 +139,21 @@ function handleResult(data) {
   status.textContent = '✅ Found!';
 }
 
-async function fetchOrigin(title, artist) {
+async function fetchOrigin(title, artist, album = '') {
   songOrigin.textContent = '🔍 Looking for origin...';
+  mediaImage.classList.add('hidden');
   try {
     const response = await fetch('/origin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, artist })
+      body: JSON.stringify({ title, artist, album })
     });
     const data = await response.json();
     songOrigin.textContent = data.origin;
+    if (data.imageUrl) {
+      mediaImage.src = data.imageUrl;
+      mediaImage.classList.remove('hidden');
+    }
   } catch (err) {
     songOrigin.textContent = '🎬 Origin could not be determined';
   }
@@ -132,8 +161,15 @@ async function fetchOrigin(title, artist) {
 
 function selectCandidate(c) {
   songTitle.textContent = c.title;
-  songArtist.textContent = `by ${c.artists?.[0]?.name || 'Unknown'}` + (c.album?.name ? ` · ${c.album.name}` : '');
-  songOrigin.textContent = `🎯 Confidence: ${Math.round(c.score * 100)}%`;
+  const year = c.release_date ? c.release_date.substring(0, 4) : null;
+  songArtist.textContent = `by ${c.artists?.[0]?.name || 'Unknown'}` + 
+    (c.album?.name ? ` · ${c.album.name}` : '') + 
+    (year ? ` · ${year}` : '');
+  fetchOrigin(c.title, c.artists?.[0]?.name || '', c.album?.name || '');
+  const spotify = c.external_metadata?.spotify?.track?.id;
+  const youtube = c.external_metadata?.youtube?.vid;
   streamLinks.innerHTML = '';
+  if (spotify) streamLinks.innerHTML += `<a href="https://open.spotify.com/track/${spotify}" target="_blank">▶ Spotify</a>`;
+  if (youtube) streamLinks.innerHTML += `<a href="https://www.youtube.com/watch?v=${youtube}" target="_blank">▶ YouTube</a>`;
   document.getElementById('otherCandidates').innerHTML = '';
 }

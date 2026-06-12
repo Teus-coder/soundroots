@@ -3,12 +3,15 @@ const http = require('http');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+
 
 const ACR_HOST = 'identify-eu-west-1.acrcloud.com';
 const ACR_ACCESS_KEY = process.env.ACR_ACCESS_KEY;
 const ACR_ACCESS_SECRET = process.env.ACR_ACCESS_SECRET;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const TMDB_API_KEY = process.env.TMDB_API_KEY;
+const RAWG_API_KEY = process.env.RAWG_API_KEY;
 
 function buildSignature() {
   const timestamp = Math.floor(Date.now() / 1000);
@@ -83,7 +86,7 @@ const server = http.createServer(async (req, res) => {
     req.on('data', chunk => chunks.push(chunk));
     req.on('end', async () => {
       try {
-        const { title, artist } = JSON.parse(Buffer.concat(chunks).toString());
+        const { title, artist, album } = JSON.parse(Buffer.concat(chunks).toString());
         console.log(`Looking up origin for: "${title}" by "${artist}"`);
 
         const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -95,19 +98,66 @@ const server = http.createServer(async (req, res) => {
           },
           body: JSON.stringify({
             model: 'claude-haiku-4-5-20251001',
-            max_tokens: 150,
+            max_tokens: 300,
             messages: [{
               role: 'user',
-              content: `The song "${title}" by "${artist}" was identified by humming recognition. In ONE short sentence, tell me if this song is from a movie, TV show, video game, or advertisement. If it's an original song not tied to any of those, say so briefly. Be concise and direct. Examples: "This is the theme from the Pokémon video game series." or "Original song, not tied to any film or show."`
+              content: `The song "${title}" by "${artist}"${album ? ` from the album "${album}"` : ''} was identified by humming recognition.
+    
+Respond ONLY with a valid JSON object, no extra text, no markdown, no backticks. Example format:
+{
+  "origin": "One sentence describing if this song is from a movie, TV show, video game, advertisement, or is an original release.",
+  "media_type": "movie" | "tv" | "game" | "none",
+  "media_title": "Exact title of the movie, show or game, or null if none",
+  "media_year": 1994 or null
+}
+
+Be concise in origin. If the song appears in multiple media, pick the most well-known one.`
             }]
           })
         });
 
         const data = await response.json();
         console.log('Claude response:', JSON.stringify(data, null, 2));
-        const origin = data.content?.[0]?.text || 'Origin unknown';
+
+        let parsed;
+        try {
+          const text = data.content?.[0]?.text || '{}';
+          parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+        } catch (e) {
+          parsed = { origin: 'Origin unknown', media_type: 'none', media_title: null, media_year: null };
+        }
+
+        let imageUrl = null;
+
+        if (parsed.media_type === 'movie' && parsed.media_title) {
+          try {
+            const tmdbRes = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(parsed.media_title)}&year=${parsed.media_year || ''}`);
+            const tmdbData = await tmdbRes.json();
+            const poster = tmdbData.results?.[0]?.poster_path;
+            if (poster) imageUrl = `https://image.tmdb.org/t/p/w300${poster}`;
+          } catch (e) { console.error('TMDB movie error:', e.message); }
+        }
+
+        if (parsed.media_type === 'tv' && parsed.media_title) {
+          try {
+            const tmdbRes = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(parsed.media_title)}`);
+            const tmdbData = await tmdbRes.json();
+            const poster = tmdbData.results?.[0]?.poster_path;
+            if (poster) imageUrl = `https://image.tmdb.org/t/p/w300${poster}`;
+          } catch (e) { console.error('TMDB tv error:', e.message); }
+        }
+
+        if (parsed.media_type === 'game' && parsed.media_title) {
+          try {
+            const rawgRes = await fetch(`https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(parsed.media_title)}&page_size=1`);
+            const rawgData = await rawgRes.json();
+            const img = rawgData.results?.[0]?.background_image;
+            if (img) imageUrl = img;
+          } catch (e) { console.error('RAWG error:', e.message); }
+        }
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ origin }));
+        res.end(JSON.stringify({ origin: parsed.origin, imageUrl }));
       } catch (err) {
         console.error('Origin error:', err.message);
         res.writeHead(500);
