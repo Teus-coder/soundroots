@@ -1,64 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SoundRoots</title>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-2E7SZ7C7WP"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-2E7SZ7C7WP');
+    function gtag() { dataLayer.push(arguments); }
   </script>
   <link rel="stylesheet" href="style.css" />
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
 </head>
 
 <body>
 
-  <body>
-    <div class="header">
-      <h1>🎵 SoundRoots</h1>
-      <p class="subtitle">Hum a melody — find where it comes from</p>
-      <button id="recordBtn">🎤 Hum a melody</button>
-      <p id="status">Ready</p>
+  <div class="header">
+    <h1>🎵 SoundRoots</h1>
+    <p class="subtitle">Hum a melody — find where it comes from</p>
+    <button id="recordBtn">🎤 Hum a melody</button>
+    <p id="status">Ready</p>
+  </div>
+
+  <div class="how-it-works">
+    <div class="step">
+      <span class="step-icon">🎤</span>
+      <h3>Hum it</h3>
+      <p>Press the button and hum the melody you have stuck in your head</p>
     </div>
-
-    <div class="how-it-works">
-      <div class="step">
-        <span class="step-icon">🎤</span>
-        <h3>Hum it</h3>
-        <p>Press the button and hum the melody you have stuck in your head</p>
-      </div>
-      <div class="step-divider">→</div>
-      <div class="step">
-        <span class="step-icon">🔍</span>
-        <h3>We identify it</h3>
-        <p>Our engine matches your hum against millions of songs</p>
-      </div>
-      <div class="step-divider">→</div>
-      <div class="step">
-        <span class="step-icon">🎬</span>
-        <h3>Find the origin</h3>
-        <p>Discover if it's from a film, series, game or just a great song</p>
-      </div>
+    <div class="step-divider">→</div>
+    <div class="step">
+      <span class="step-icon">🔍</span>
+      <h3>We identify it</h3>
+      <p>Our engine matches your hum against millions of songs</p>
     </div>
-
-    <div id="result" class="hidden">
-      <img id="mediaImage" class="hidden" alt="Media cover" />
-      <h2 id="songTitle"></h2>
-      <p id="songArtist"></p>
-      <p id="songOrigin"></p>
-      <div id="streamLinks"></div>
-      <div id="appearances"></div>
-      <div id="otherCandidates"></div>
+    <div class="step-divider">→</div>
+    <div class="step">
+      <span class="step-icon">🎬</span>
+      <h3>Find the origin</h3>
+      <p>Discover if it's from a film, series, game or just a great song</p>
     </div>
+  </div>
 
+  <div id="result" class="hidden">
+    <img id="mediaImage" class="hidden" alt="Media cover" />
+    <h2 id="songTitle"></h2>
+    <p id="songArtist"></p>
+    <p id="songOrigin"></p>
+    <div id="streamLinks"></div>
+    <div id="appearances"></div>
+    <div id="otherCandidates"></div>
+    <button id="correctBtn" class="correct-btn">🤔 Not the right song?</button>
 
+    <div id="correctForm" class="correct-form hidden">
+      <p class="correct-label">What song is it actually?</p>
+      <input type="text" id="correctTitle" placeholder="Song title" />
+      <input type="text" id="correctArtist" placeholder="Artist" />
+      <div class="correct-buttons">
+        <button id="correctCancel">Cancel</button>
+        <button id="correctSubmit">Submit</button>
+      </div>
+      <p id="correctStatus"></p>
+    </div>
+  </div>
 
-    <script src="app.js"></script>
-  </body>
+  <div id="cookieBanner" class="cookie-banner hidden">
+    <p>This site uses cookies to analyze traffic and improve your experience. <a href="#" id="cookieInfo">Learn
+        more</a></p>
+    <div class="cookie-buttons">
+      <button id="cookieDecline">Decline</button>
+      <button id="cookieAccept">Accept</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script src="cookies.js"></script>
 </body>
 
 </html>

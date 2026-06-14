@@ -212,3 +212,119 @@ body {
   #streamLinks { flex-direction: column; align-items: center; }
 }
 .how-it-works.hidden { display: none; }
+.cookie-banner {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 3rem);
+  max-width: 600px;
+  background: #13131f;
+  border: 1px solid #2a2a3e;
+  border-radius: 16px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  z-index: 1000;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+}
+
+.cookie-banner.hidden { display: none; }
+
+.cookie-banner p {
+  font-size: 0.85rem;
+  color: #ccc;
+  margin: 0;
+  flex: 1;
+  min-width: 200px;
+}
+
+.cookie-banner a { color: #6c63ff; }
+
+.cookie-buttons {
+  display: flex;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.cookie-buttons button {
+  padding: 0.5rem 1.2rem;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+#cookieAccept { background: #6c63ff; color: white; }
+#cookieDecline { background: #2a2a3e; color: #ccc; }
+
+@media (max-width: 600px) {
+  .cookie-banner { flex-direction: column; text-align: center; }
+}
+.correct-btn {
+  display: block;
+  margin: 1.2rem auto 0;
+  background: none;
+  border: 1px solid #2a2a3e;
+  color: #888;
+  padding: 0.5rem 1.2rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.correct-btn:hover { border-color: #6c63ff; color: #6c63ff; }
+
+.correct-form {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #1a1a2e;
+  border-radius: 12px;
+}
+
+.correct-form.hidden { display: none; }
+
+.correct-label { font-size: 0.85rem; color: #888; margin-bottom: 0.6rem; }
+
+.correct-form input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 0.6rem;
+  background: #0f0f1a;
+  border: 1px solid #2a2a3e;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.correct-form input:focus { outline: none; border-color: #6c63ff; }
+
+.correct-buttons {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+.correct-buttons button {
+  padding: 0.5rem 1.2rem;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+#correctSubmit { background: #6c63ff; color: white; }
+#correctCancel { background: #2a2a3e; color: #ccc; }
+
+#correctStatus {
+  margin-top: 0.6rem;
+  font-size: 0.8rem;
+  color: #6c63ff;
+  text-align: center;
+}

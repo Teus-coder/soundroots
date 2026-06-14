@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-
+const { createClient } = require('@supabase/supabase-js');
 
 const ACR_HOST = 'identify-eu-west-1.acrcloud.com';
 const ACR_ACCESS_KEY = process.env.ACR_ACCESS_KEY;
@@ -12,6 +12,8 @@ const ACR_ACCESS_SECRET = process.env.ACR_ACCESS_SECRET;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const RAWG_API_KEY = process.env.RAWG_API_KEY;
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
 function buildSignature() {
   const timestamp = Math.floor(Date.now() / 1000);
@@ -44,12 +46,15 @@ const server = http.createServer(async (req, res) => {
       serveFile(res, path.join(__dirname, 'app.js'), 'application/javascript');
     } else if (req.url === '/style.css') {
       serveFile(res, path.join(__dirname, 'style.css'), 'text/css');
+    } else if (req.url === '/cookies.js') {
+      serveFile(res, path.join(__dirname, 'cookies.js'), 'application/javascript');
     } else {
       res.writeHead(404); res.end();
     }
     return;
   }
 
+  // Ruta: identificar canción
   if (req.method === 'POST' && req.url === '/identify') {
     const chunks = [];
     req.on('data', chunk => chunks.push(chunk));
@@ -81,6 +86,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Ruta: buscar origen con Claude
   if (req.method === 'POST' && req.url === '/origin') {
     const chunks = [];
     req.on('data', chunk => chunks.push(chunk));
@@ -175,6 +181,80 @@ Always use the original title in original_title field, never a translation. Also
         console.error('Origin error:', err.message);
         res.writeHead(500);
         res.end(JSON.stringify({ origin: 'Origin could not be determined' }));
+      }
+    });
+    return;
+  }
+
+  // Ruta: enviar una corrección
+  if (req.method === 'POST' && req.url === '/correct') {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', async () => {
+      try {
+        const { original_title, original_artist, corrected_title, corrected_artist } = JSON.parse(Buffer.concat(chunks).toString());
+
+        const { data: existing } = await supabase
+          .from('corrections')
+          .select('*')
+          .eq('original_title', original_title)
+          .eq('original_artist', original_artist)
+          .eq('corrected_title', corrected_title)
+          .eq('corrected_artist', corrected_artist)
+          .eq('status', 'pending')
+          .maybeSingle();
+
+        if (existing) {
+          const newVotes = existing.votes + 1;
+          const newStatus = newVotes >= 3 ? 'approved' : 'pending';
+
+          await supabase
+            .from('corrections')
+            .update({ votes: newVotes, status: newStatus })
+            .eq('id', existing.id);
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, votes: newVotes, approved: newStatus === 'approved' }));
+        } else {
+          await supabase
+            .from('corrections')
+            .insert({ original_title, original_artist, corrected_title, corrected_artist });
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, votes: 1, approved: false }));
+        }
+      } catch (err) {
+        console.error('Correction error:', err.message);
+        res.writeHead(500);
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // Ruta: comprobar si hay una corrección aprobada para una canción
+  if (req.method === 'POST' && req.url === '/check-correction') {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', async () => {
+      try {
+        const { title, artist } = JSON.parse(Buffer.concat(chunks).toString());
+
+        const { data } = await supabase
+          .from('corrections')
+          .select('corrected_title, corrected_artist')
+          .eq('original_title', title)
+          .eq('original_artist', artist)
+          .eq('status', 'approved')
+          .order('votes', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ correction: data || null }));
+      } catch (err) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ correction: null }));
       }
     });
     return;

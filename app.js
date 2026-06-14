@@ -7,7 +7,15 @@ const songOrigin = document.getElementById('songOrigin');
 const streamLinks = document.getElementById('streamLinks');
 const mediaImage = document.getElementById('mediaImage');
 const appearancesDiv = document.getElementById('appearances');
+const correctBtn = document.getElementById('correctBtn');
+const correctForm = document.getElementById('correctForm');
+const correctCancel = document.getElementById('correctCancel');
+const correctSubmit = document.getElementById('correctSubmit');
+const correctStatus = document.getElementById('correctStatus');
+const correctTitle = document.getElementById('correctTitle');
+const correctArtist = document.getElementById('correctArtist');
 
+let currentSong = { title: '', artist: ''};
 let mediaRecorder;
 let audioChunks = [];
 let recording = false;
@@ -83,7 +91,6 @@ function handleResult(data) {
   if (data.status?.code !== 0) {
     status.textContent = '🤔 No match found. Try humming a bit longer!';
     result.classList.add('hidden');
-    document.querySelector('.how-it-works').classList.add('hidden');
     return;
   }
 
@@ -112,41 +119,11 @@ function handleResult(data) {
   // Marcar cuál es el original en los candidatos alternativos
   const others = sorted.filter(c => c !== best);
 
-  songTitle.textContent = best.title;
-  const year = best.release_date ? best.release_date.substring(0, 4) : null;
-  songArtist.textContent = `by ${best.artists?.[0]?.name || 'Unknown'}` + (best.album?.name ? ` · ${best.album.name}` : '') + (year ? ` · ${year}` : '');
-  fetchOrigin(best.title, best.artists?.[0]?.name || '', best.album?.name || '');
-
-  const spotify = best.external_metadata?.spotify?.track?.id;
-  const youtube = best.external_metadata?.youtube?.vid;
-  streamLinks.innerHTML = '';
-  if (spotify) streamLinks.innerHTML += `<a href="https://open.spotify.com/track/${spotify}" target="_blank">▶ Spotify</a>`;
-  if (youtube) streamLinks.innerHTML += `<a href="https://www.youtube.com/watch?v=${youtube}" target="_blank">▶ YouTube</a>`;
-
-  // Otras opciones
-  const othersDiv = document.getElementById('otherCandidates');
-  othersDiv.innerHTML = '';
-  if (sorted.length > 1) {
-    othersDiv.innerHTML = '<p class="others-title">Not what you were looking for?</p>';
-    others.forEach(c => {
-      const score = Math.round(c.score * 100);
-      const artist = c.artists?.[0]?.name || 'Unknown';
-      const isOriginalVersion = c === sorted[0] && c !== best;
-      othersDiv.innerHTML += `
-    <div class="candidate" onclick="selectCandidate(${JSON.stringify(c).split('"').join("'")})">
-      <span class="candidate-title">${c.title}${isOriginalVersion ? ' <span class="original-badge">Original</span>' : ''}</span>
-      <span class="candidate-artist">by ${artist}</span>
-      <span class="candidate-score">${score}%</span>
-    </div>`;
-    });
-  }
-  document.querySelector('.how-it-works').classList.add('hidden');
-  result.classList.remove('hidden');
-  status.textContent = '✅ Found!';
+  applyCorrectionAndDisplay(best, sorted, others);
   gtag('event', 'song_identified', {
-  song_title: best.title,
-  artist: best.artists?.[0]?.name || 'Unknown'
-});
+    song_title: best.title,
+    artist: best.artists?.[0]?.name || 'Unknown'
+  });
 }
 
 async function fetchOrigin(title, artist, album = '') {
@@ -197,6 +174,8 @@ async function fetchOrigin(title, artist, album = '') {
 
 function selectCandidate(c) {
   songTitle.textContent = c.title;
+  currentSong = { title: c.title, artist: c.artists?.[0]?.name || '' };
+  correctForm.classList.add('hidden');
   const year = c.release_date ? c.release_date.substring(0, 4) : null;
   songArtist.textContent = `by ${c.artists?.[0]?.name || 'Unknown'}` +
     (c.album?.name ? ` · ${c.album.name}` : '') +
@@ -208,4 +187,103 @@ function selectCandidate(c) {
   if (spotify) streamLinks.innerHTML += `<a href="https://open.spotify.com/track/${spotify}" target="_blank">▶ Spotify</a>`;
   if (youtube) streamLinks.innerHTML += `<a href="https://www.youtube.com/watch?v=${youtube}" target="_blank">▶ YouTube</a>`;
   document.getElementById('otherCandidates').innerHTML = '';
+}
+
+correctBtn.addEventListener('click', () => {
+  correctForm.classList.toggle('hidden');
+  correctStatus.textContent = '';
+});
+
+correctCancel.addEventListener('click', () => {
+  correctForm.classList.add('hidden');
+  correctTitle.value = '';
+  correctArtist.value = '';
+});
+
+correctSubmit.addEventListener('click', async () => {
+  const corrected_title = correctTitle.value.trim();
+  const corrected_artist = correctArtist.value.trim();
+
+  if (!corrected_title || !corrected_artist) {
+    correctStatus.textContent = 'Please fill in both fields';
+    return;
+  }
+
+  correctStatus.textContent = 'Submitting...';
+
+  try {
+    const response = await fetch('/correct', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        original_title: currentSong.title,
+        original_artist: currentSong.artist,
+        corrected_title,
+        corrected_artist
+      })
+    });
+    const data = await response.json();
+
+    if (data.approved) {
+      correctStatus.textContent = '✅ Correction approved! Thanks for helping.';
+    } else {
+      correctStatus.textContent = `✅ Thanks! ${data.votes} ${data.votes === 1 ? 'vote' : 'votes'} so far.`;
+    }
+
+    correctTitle.value = '';
+    correctArtist.value = '';
+  } catch (err) {
+    correctStatus.textContent = '❌ Something went wrong, try again later.';
+  }
+});
+async function applyCorrectionAndDisplay(best, sorted, others) {
+  currentSong = { title: best.title, artist: best.artists?.[0]?.name || '' };
+  let title = best.title;
+  let artist = best.artists?.[0]?.name || 'Unknown';
+  try {
+    const response = await fetch('/check-correction', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: best.title, artist: best.artists?.[0]?.name || '' })
+    });
+    const data = await response.json();
+    if (data.correction) {
+      title = data.correction.corrected_title;
+      artist = data.correction.corrected_artist;
+    }
+  } catch (e) {
+    console.error('Correction check failed:', e);
+  }
+
+  songTitle.textContent = title;
+  const year = best.release_date ? best.release_date.substring(0, 4) : null;
+  songArtist.textContent = `by ${artist}` + (best.album?.name ? ` · ${best.album.name}` : '') + (year ? ` · ${year}` : '');
+  fetchOrigin(title, artist, best.album?.name || '');
+
+  const spotify = best.external_metadata?.spotify?.track?.id;
+  const youtube = best.external_metadata?.youtube?.vid;
+  streamLinks.innerHTML = '';
+  if (spotify) streamLinks.innerHTML += `<a href="https://open.spotify.com/track/${spotify}" target="_blank">▶ Spotify</a>`;
+  if (youtube) streamLinks.innerHTML += `<a href="https://www.youtube.com/watch?v=${youtube}" target="_blank">▶ YouTube</a>`;
+
+  const othersDiv = document.getElementById('otherCandidates');
+  othersDiv.innerHTML = '';
+  if (sorted.length > 1) {
+    othersDiv.innerHTML = '<p class="others-title">Not what you were looking for?</p>';
+    others.forEach(c => {
+      const score = Math.round(c.score * 100);
+      const candidateArtist = c.artists?.[0]?.name || 'Unknown';
+      const isOriginalVersion = c === sorted[0] && c !== best;
+      othersDiv.innerHTML += `
+        <div class="candidate" onclick="selectCandidate(${JSON.stringify(c).split('"').join("'")})">
+          <span class="candidate-title">${c.title}${isOriginalVersion ? ' <span class="original-badge">Original</span>' : ''}</span>
+          <span class="candidate-artist">by ${candidateArtist}</span>
+          <span class="candidate-score">${score}%</span>
+        </div>`;
+    });
+  }
+
+  document.querySelector('.how-it-works').classList.add('hidden');
+  result.classList.remove('hidden');
+  status.textContent = '✅ Found!';
 }

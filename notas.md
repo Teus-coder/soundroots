@@ -5,6 +5,10 @@
 - **Repositorio:** https://github.com/Teus-coder/soundroots
 - **Hosting:** Render.com (free tier, se duerme tras 15min de inactividad)
 - **Dominio futuro:** soundroots.com (disponible, ~$10-12/año en Namecheap o Porkbun)
+- **Google Analytics** — Tracking de visitas y eventos
+  - Dashboard: https://analytics.google.com
+  - Measurement ID: G-2E7SZ7C7WP (el tuyo)
+  - Evento personalizado: song_identified (se dispara cada vez que se identifica una canción)
 
 ## APIs integradas
 - **ACRCloud** — Reconocimiento de audio por tarareo
@@ -59,6 +63,7 @@ En `.env` local y en Render > soundroots > Environment:
 - ⬜ Resolver sleep de Render en free tier (upgrade o keep-alive)
 - ⬜ Renovar/pagar ACRCloud cuando expire el trial (10 jul 2026)
 - ⬜ Añadir cookies al sitio
+- ⬜ Añadir icono al sitio
 
 ## Archivos del proyecto
 - `server.js` — Servidor Node.js, rutas /identify y /origin, firma HMAC para ACRCloud
